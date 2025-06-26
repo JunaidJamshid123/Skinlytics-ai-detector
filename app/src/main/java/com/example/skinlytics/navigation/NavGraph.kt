@@ -11,6 +11,7 @@ import com.example.skinlytics.ui.screens.scan.ScanScreen
 import com.example.skinlytics.ui.screens.profile.ProfileScreen
 import com.example.skinlytics.ui.screens.settings.SettingsScreen
 import com.example.skinlytics.ui.components.BottomNavItem
+import com.example.skinlytics.ui.screens.scan.ResultScreen
 
 @Composable
 fun NavGraph(navController: NavHostController, startDestination: String = "splash") {
@@ -18,7 +19,10 @@ fun NavGraph(navController: NavHostController, startDestination: String = "splas
         composable("splash") { SplashScreen() }
         composable(BottomNavItem.Home.route) { HomeScreen() }
         composable(BottomNavItem.History.route) { HistoryScreen() }
-        composable(BottomNavItem.Scan.route) { ScanScreen() }
+        composable(BottomNavItem.Scan.route) {
+            ScanScreen(onViewResult = { navController.navigate("result") })
+        }
+        composable("result") { ResultScreen() }
         composable(BottomNavItem.Profile.route) { ProfileScreen() }
         composable(BottomNavItem.Settings.route) { SettingsScreen() }
     }
