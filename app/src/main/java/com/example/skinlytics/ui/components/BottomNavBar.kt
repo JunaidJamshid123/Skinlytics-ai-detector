@@ -8,6 +8,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import com.example.skinlytics.ui.theme.BrownRich
+import com.example.skinlytics.ui.theme.BrownDeep
+import com.example.skinlytics.ui.theme.SkinPeach
+import com.example.skinlytics.ui.theme.SkinBeige
+import androidx.compose.ui.unit.dp
 
 sealed class BottomNavItem(val route: String, val icon: ImageVector, val label: String) {
     object Home : BottomNavItem("home", Icons.Default.Home, "Home")
@@ -27,13 +34,31 @@ val bottomNavItems = listOf(
 
 @Composable
 fun BottomNavBar(selectedRoute: String, onItemSelected: (String) -> Unit) {
-    NavigationBar {
+    NavigationBar(
+        containerColor = SkinPeach,
+        tonalElevation = 6.dp
+    ) {
         bottomNavItems.forEach { item ->
+            val selected = selectedRoute == item.route
             NavigationBarItem(
-                selected = selectedRoute == item.route,
+                selected = selected,
                 onClick = { onItemSelected(item.route) },
-                icon = { Icon(item.icon, contentDescription = item.label) },
-                label = { Text(item.label) }
+                icon = {
+                    Icon(
+                        item.icon,
+                        contentDescription = item.label,
+                        tint = if (selected) BrownRich else BrownDeep
+                    )
+                },
+                label = {
+                    Text(
+                        item.label,
+                        color = if (selected) BrownRich else BrownDeep
+                    )
+                },
+                colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+                    indicatorColor = SkinBeige
+                )
             )
         }
     }
