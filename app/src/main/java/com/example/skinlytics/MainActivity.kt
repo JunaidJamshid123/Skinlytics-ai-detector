@@ -14,6 +14,16 @@ import com.example.skinlytics.ui.components.BottomNavBar
 import com.example.skinlytics.ui.components.bottomNavItems
 import com.example.skinlytics.ui.theme.SkinlyticsTheme
 import com.example.skinlytics.viewmodel.MainViewModel
+import com.example.skinlytics.ui.components.ChatBotModal
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Chat
+import com.example.skinlytics.ui.theme.BrownRich
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,6 +34,7 @@ class MainActivity : ComponentActivity() {
                 val splashFinished by viewModel.splashFinished.collectAsState()
                 val navController = rememberNavController()
                 var selectedRoute by remember { mutableStateOf(bottomNavItems[0].route) }
+                var showChat by remember { mutableStateOf(false) }
 
                 LaunchedEffect(Unit) {
                     viewModel.startSplashTimer()
@@ -42,12 +53,24 @@ class MainActivity : ComponentActivity() {
                                     restoreState = true
                                 }
                             }
+                        },
+                        floatingActionButton = {
+                            FloatingActionButton(
+                                onClick = { showChat = true },
+                                containerColor = BrownRich,
+                                modifier = Modifier.padding(bottom = 16.dp, end = 8.dp)
+                            ) {
+                                Icon(Icons.Default.Chat, contentDescription = "Chatbot", tint = Color.White)
+                            }
                         }
                     ) { innerPadding ->
-                        NavGraph(
-                            navController = navController,
-                            startDestination = selectedRoute
-                        )
+                        Box(Modifier.padding(innerPadding)) {
+                            NavGraph(
+                                navController = navController,
+                                startDestination = selectedRoute
+                            )
+                            ChatBotModal(visible = showChat, onDismiss = { showChat = false })
+                        }
                     }
                 }
             }

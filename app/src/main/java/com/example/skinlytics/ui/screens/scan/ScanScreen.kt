@@ -40,6 +40,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import kotlinx.coroutines.delay
 import java.io.InputStream
+import com.example.skinlytics.ui.components.ChatBotModal
+import com.example.skinlytics.ui.components.ScreenWithChatbot
+import com.example.skinlytics.ui.theme.BrownRich
 
 /**
  * Enhanced ScanScreen with professional medical scanner UI
@@ -75,6 +78,7 @@ fun ScanScreen(
     var scanProgress by remember { mutableStateOf(0f) }
     var scanStage by remember { mutableStateOf("") }
     var showPermissionDialog by remember { mutableStateOf(false) }
+    var showChat by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Responsive sizing
