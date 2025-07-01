@@ -43,6 +43,9 @@ import java.io.InputStream
 import com.example.skinlytics.ui.components.ChatBotModal
 import com.example.skinlytics.ui.components.ScreenWithChatbot
 import com.example.skinlytics.ui.theme.BrownRich
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.skinlytics.viewmodel.ScanViewModel
+import com.example.skinlytics.viewmodel.ScanUiState
 
 /**
  * Enhanced ScanScreen with professional medical scanner UI
@@ -50,7 +53,8 @@ import com.example.skinlytics.ui.theme.BrownRich
  */
 @Composable
 fun ScanScreen(
-    onViewResult: () -> Unit = {}
+    onViewResult: () -> Unit = {},
+    scanViewModel: ScanViewModel = hiltViewModel()
 ) {
     // Get screen configuration for responsive design
     val configuration = LocalConfiguration.current
@@ -71,15 +75,13 @@ fun ScanScreen(
     val buttonTextColor = Color.White
     val accentColor = Color(0xFF6B3E2A)
 
+    val context = LocalContext.current
+    val uiState by scanViewModel.uiState.collectAsState()
+
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var selectedBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    var isScanning by remember { mutableStateOf(false) }
-    var scanComplete by remember { mutableStateOf(false) }
-    var scanProgress by remember { mutableStateOf(0f) }
-    var scanStage by remember { mutableStateOf("") }
     var showPermissionDialog by remember { mutableStateOf(false) }
     var showChat by remember { mutableStateOf(false) }
-    val context = LocalContext.current
 
     // Responsive sizing
     val headerIconSize = if (isSmallScreen) 36.dp else 40.dp
@@ -134,30 +136,6 @@ fun ScanScreen(
         }
     }
 
-    // Scanning simulation
-    LaunchedEffect(isScanning) {
-        if (isScanning) {
-            val stages = listOf(
-                "Initializing scan..." to 0.1f,
-                "Analyzing skin texture..." to 0.3f,
-                "Detecting patterns..." to 0.5f,
-                "Processing AI analysis..." to 0.7f,
-                "Generating results..." to 0.9f,
-                "Scan complete!" to 1.0f
-            )
-
-            stages.forEach { (stage, progress) ->
-                scanStage = stage
-                scanProgress = progress
-                delay(800)
-            }
-
-            delay(500)
-            isScanning = false
-            scanComplete = true
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -209,22 +187,13 @@ fun ScanScreen(
                     .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
-                when {
-                    isScanning -> {
-                        ScanningInterface(
-                            selectedImageUri = selectedImageUri,
-                            selectedBitmap = selectedBitmap,
-                            scanProgress = scanProgress,
-                            scanStage = scanStage,
-                            scannerRotation = scannerRotation,
-                            pulseScale = pulseScale,
-                            buttonColor = buttonColor,
-                            context = context,
-                            cardSize = cardSize,
-                            isSmallScreen = isSmallScreen
-                        )
+                when (uiState) {
+                    is ScanUiState.Loading -> {
+                        // Show loading UI (spinner or progress)
+                        CircularProgressIndicator(color = buttonColor)
+                        Text("Analyzing...", color = buttonColor, fontWeight = FontWeight.Bold)
                     }
-                    scanComplete -> {
+                    is ScanUiState.Success -> {
                         ScanCompleteInterface(
                             selectedImageUri = selectedImageUri,
                             selectedBitmap = selectedBitmap,
@@ -236,6 +205,10 @@ fun ScanScreen(
                             buttonHeight = buttonHeight,
                             isSmallScreen = isSmallScreen
                         )
+                    }
+                    is ScanUiState.Error -> {
+                        val error = (uiState as ScanUiState.Error).message
+                        Text("Error: $error", color = Color.Red, fontWeight = FontWeight.Bold)
                     }
                     else -> {
                         ImageSelectionInterface(
@@ -252,9 +225,7 @@ fun ScanScreen(
                             },
                             onGalleryClick = { galleryLauncher.launch("image/*") },
                             onStartScan = {
-                                isScanning = true
-                                scanComplete = false
-                                scanProgress = 0f
+                                scanViewModel.uploadImageAndAnalyze(context, selectedImageUri)
                             },
                             buttonColor = buttonColor,
                             buttonTextColor = buttonTextColor,
