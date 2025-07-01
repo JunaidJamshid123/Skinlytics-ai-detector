@@ -66,9 +66,11 @@ fun ScanScreen(
     selectedBitmap: Bitmap? = null,
     onImageSelected: (Uri?, Bitmap?) -> Unit
 ) {
+    val context = LocalContext.current
+    val application = context.applicationContext as android.app.Application
     val scanViewModel: ScanViewModel = viewModel(viewModelStoreOwner = viewModelStoreOwner, factory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return ScanViewModel(ScanRepository()) as T
+            return ScanViewModel(application) as T
         }
     })
     // Get screen configuration for responsive design
@@ -90,7 +92,6 @@ fun ScanScreen(
     val buttonTextColor = Color.White
     val accentColor = Color(0xFF6B3E2A)
 
-    val context = LocalContext.current
     val uiState by scanViewModel.uiState.collectAsState()
 
     var localSelectedImageUri by remember { mutableStateOf(selectedImageUri) }

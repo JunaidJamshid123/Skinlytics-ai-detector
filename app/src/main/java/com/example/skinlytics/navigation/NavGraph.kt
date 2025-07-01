@@ -19,15 +19,27 @@ import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import com.google.gson.Gson
+import com.example.skinlytics.model.ScanResult
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 @Composable
 fun NavGraph(navController: NavHostController, startDestination: String = "splash") {
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var selectedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    val gson = Gson()
     NavHost(navController = navController, startDestination = startDestination) {
         composable("splash") { SplashScreen() }
-        composable(BottomNavItem.Home.route) { HomeScreen() }
-        composable(BottomNavItem.History.route) { HistoryScreen() }
+        composable(BottomNavItem.Home.route) {
+            HomeScreen(onStartScan = { navController.navigate(BottomNavItem.Scan.route) })
+        }
+        composable(BottomNavItem.History.route) {
+            HistoryScreen(onScanSelected = { scanResult ->
+                val scanResultJson = gson.toJson(scanResult)
+                navController.navigate("result_details/${Uri.encode(scanResultJson)}")
+            })
+        }
         composable(BottomNavItem.Scan.route) { backStackEntry ->
             ScanScreen(
                 onViewResult = { navController.navigate("result") },
@@ -49,6 +61,14 @@ fun NavGraph(navController: NavHostController, startDestination: String = "splas
                 selectedImageUri = selectedImageUri,
                 selectedBitmap = selectedBitmap
             )
+        }
+        composable(
+            route = "result_details/{scanResultJson}",
+            arguments = listOf(navArgument("scanResultJson") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val scanResultJson = backStackEntry.arguments?.getString("scanResultJson") ?: ""
+            val scanResult = gson.fromJson(scanResultJson, ScanResult::class.java)
+            com.example.skinlytics.ui.screens.scan.ResultScreenFromHistory(scanResult)
         }
         composable(BottomNavItem.Profile.route) { ProfileScreen() }
         composable(BottomNavItem.Settings.route) { SettingsScreen() }

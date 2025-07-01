@@ -12,8 +12,24 @@ import java.io.File
 import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import android.app.Application
+import androidx.room.Room
+import kotlinx.coroutines.flow.Flow
 
-class ScanRepository {
+class ScanRepository(application: Application) {
+    private val db = Room.databaseBuilder(
+        application,
+        SkinlyticsDatabase::class.java,
+        "skinlytics_db"
+    ).build()
+    private val scanResultDao = db.scanResultDao()
+
+    suspend fun insertScanResult(result: ScanResult) {
+        scanResultDao.insertScanResult(result)
+    }
+
+    fun getAllScanResults(): Flow<List<ScanResult>> = scanResultDao.getAllScanResults()
+
     companion object {
         // Use 10.0.2.2 for emulator, or your PC's IP for device
         private const val BASE_URL = "http://10.0.2.2:5000" // Change to your PC IP for device

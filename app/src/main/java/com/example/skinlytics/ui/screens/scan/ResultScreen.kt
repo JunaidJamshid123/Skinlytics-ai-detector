@@ -49,6 +49,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import com.example.skinlytics.model.ScanResult
 
 @Composable
 fun ResultScreen(
@@ -57,17 +58,18 @@ fun ResultScreen(
     selectedBitmap: Bitmap? = null,
     context: Context = LocalContext.current
 ) {
+    val application = context.applicationContext as android.app.Application
     val scanViewModel: ScanViewModel = viewModel(viewModelStoreOwner = viewModelStoreOwner, factory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return ScanViewModel(ScanRepository()) as T
+            return ScanViewModel(application) as T
         }
     })
     val uiState = scanViewModel.uiState.collectAsState().value
     when (uiState) {
         is ScanUiState.Success -> {
             val result = (uiState as ScanUiState.Success).result
-            val configuration = LocalConfiguration.current
-            val screenWidth = configuration.screenWidthDp.dp
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
             val skinGradient = Brush.verticalGradient(
                 colors = listOf(
                     Color(0xFFFDE8D4),
@@ -76,10 +78,10 @@ fun ResultScreen(
                     Color(0xFFF7EFE7)
                 )
             )
-            val horizontalPadding = when {
+    val horizontalPadding = when {
                 screenWidth < 360.dp -> 12.dp
                 screenWidth < 480.dp -> 18.dp
-                else -> 24.dp
+        else -> 24.dp
             }
             Box(
                 modifier = Modifier
@@ -338,6 +340,199 @@ fun ResultScreen(
         else -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("No result available.")
+            }
+        }
+    }
+}
+
+@Composable
+fun ResultScreenFromHistory(scanResult: ScanResult) {
+    val skinGradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFFFDE8D4),
+            Color(0xFFF4E4D1),
+            Color(0xFFEDD5C3),
+            Color(0xFFF7EFE7)
+        )
+    )
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val horizontalPadding = when {
+        screenWidth < 360.dp -> 12.dp
+        screenWidth < 480.dp -> 18.dp
+        else -> 24.dp
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(skinGradient)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = horizontalPadding, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // --- Prediction & Severity ---
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(10.dp, RoundedCornerShape(24.dp)),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.98f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = scanResult.prediction,
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF8B4A2B),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    if (scanResult.severity.isNotBlank()) {
+                    Card(
+                            shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                                containerColor = when (scanResult.severity.lowercase()) {
+                                    "mild" -> Color(0xFFB5D6A7)
+                                    "moderate" -> Color(0xFFFFE082)
+                                    "severe" -> Color(0xFFE57373)
+                                else -> Color(0xFFB5D6A7)
+                            }
+                        ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Text(
+                                text = scanResult.severity.uppercase(),
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(22.dp))
+            // --- About Section ---
+            if (scanResult.about.isNotBlank()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                        .shadow(6.dp, RoundedCornerShape(18.dp)),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.93f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                ) {
+                    Column(Modifier.padding(20.dp)) {
+                    Text(
+                        text = "About This Condition",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                            color = Color(0xFF8B4A2B)
+                    )
+                        Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                            text = scanResult.about,
+                            fontSize = 16.sp,
+                        color = Color(0xFF6B3E2A),
+                        textAlign = TextAlign.Start,
+                            lineHeight = 22.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(18.dp))
+            }
+            // --- Symptoms Section ---
+            if (scanResult.common_symptoms.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                        .shadow(6.dp, RoundedCornerShape(18.dp)),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.93f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                ) {
+                    Column(Modifier.padding(20.dp)) {
+                        Text(
+                            text = "Common Symptoms",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF8B4A2B),
+                            modifier = Modifier.padding(bottom = 10.dp)
+                        )
+                    FlowRow(
+                        mainAxisSpacing = 8.dp,
+                        crossAxisSpacing = 8.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                            scanResult.common_symptoms.forEach { symptom ->
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF4E4D1)),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Text(
+                                        text = symptom,
+                                        color = Color(0xFF6B3E2A),
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(18.dp))
+            }
+            // --- Recommendations Section ---
+            if (scanResult.treatment_recommendations.isNotEmpty()) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                        .shadow(6.dp, RoundedCornerShape(18.dp)),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.93f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                ) {
+                    Column(Modifier.padding(20.dp)) {
+                        Text(
+                            text = "Treatment Recommendations",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF8B4A2B),
+                            modifier = Modifier.padding(bottom = 10.dp)
+                        )
+                        FlowRow(
+                            mainAxisSpacing = 8.dp,
+                            crossAxisSpacing = 8.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                            scanResult.treatment_recommendations.forEach { rec ->
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFDE8D4)),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Text(
+                                        text = rec,
+                                        color = Color(0xFF8B4A2B),
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
