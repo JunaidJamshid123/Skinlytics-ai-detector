@@ -52,6 +52,7 @@ import com.example.skinlytics.viewmodel.ScanUiState
 import android.widget.Toast
 import android.util.Log
 import androidx.lifecycle.ViewModelStoreOwner
+import android.graphics.Bitmap
 
 /**
  * Enhanced ScanScreen with professional medical scanner UI
@@ -60,7 +61,10 @@ import androidx.lifecycle.ViewModelStoreOwner
 @Composable
 fun ScanScreen(
     onViewResult: () -> Unit = {},
-    viewModelStoreOwner: ViewModelStoreOwner
+    viewModelStoreOwner: ViewModelStoreOwner,
+    selectedImageUri: Uri? = null,
+    selectedBitmap: Bitmap? = null,
+    onImageSelected: (Uri?, Bitmap?) -> Unit
 ) {
     val scanViewModel: ScanViewModel = viewModel(viewModelStoreOwner = viewModelStoreOwner, factory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -89,8 +93,8 @@ fun ScanScreen(
     val context = LocalContext.current
     val uiState by scanViewModel.uiState.collectAsState()
 
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var selectedBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var localSelectedImageUri by remember { mutableStateOf(selectedImageUri) }
+    var localSelectedBitmap by remember { mutableStateOf(selectedBitmap) }
     var showPermissionDialog by remember { mutableStateOf(false) }
     var showChat by remember { mutableStateOf(false) }
 
@@ -128,15 +132,17 @@ fun ScanScreen(
     // Camera and gallery launchers
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
         if (bitmap != null) {
-            selectedBitmap = bitmap
-            selectedImageUri = null
+            localSelectedBitmap = bitmap
+            localSelectedImageUri = null
+            onImageSelected(null, bitmap)
         }
     }
 
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
-            selectedImageUri = uri
-            selectedBitmap = null
+            localSelectedImageUri = uri
+            localSelectedBitmap = null
+            onImageSelected(uri, null)
         }
     }
 
@@ -211,8 +217,8 @@ fun ScanScreen(
                         // Optionally trigger navigation or update UI here
                         onViewResult()
                         ScanCompleteInterface(
-                            selectedImageUri = selectedImageUri,
-                            selectedBitmap = selectedBitmap,
+                            selectedImageUri = localSelectedImageUri,
+                            selectedBitmap = localSelectedBitmap,
                             onViewResult = onViewResult,
                             buttonColor = buttonColor,
                             buttonTextColor = buttonTextColor,
@@ -228,8 +234,8 @@ fun ScanScreen(
                     }
                     else -> {
                         ImageSelectionInterface(
-                            selectedImageUri = selectedImageUri,
-                            selectedBitmap = selectedBitmap,
+                            selectedImageUri = localSelectedImageUri,
+                            selectedBitmap = localSelectedBitmap,
                             onCameraClick = {
                                 val permission = Manifest.permission.CAMERA
                                 val granted = ContextCompat.checkSelfPermission(context, permission) == PermissionChecker.PERMISSION_GRANTED
@@ -241,7 +247,7 @@ fun ScanScreen(
                             },
                             onGalleryClick = { galleryLauncher.launch("image/*") },
                             onStartScan = {
-                                scanViewModel.uploadImageAndAnalyze(context, selectedImageUri)
+                                scanViewModel.uploadImageAndAnalyze(context, localSelectedImageUri)
                             },
                             buttonColor = buttonColor,
                             buttonTextColor = buttonTextColor,

@@ -40,6 +40,15 @@ import java.io.InputStream
 import android.widget.Toast
 import android.util.Log
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @Composable
 fun ResultScreen(
@@ -57,8 +66,6 @@ fun ResultScreen(
     when (uiState) {
         is ScanUiState.Success -> {
             val result = (uiState as ScanUiState.Success).result
-            Toast.makeText(context, "Result displayed: ${result.prediction}", Toast.LENGTH_LONG).show()
-            Log.d("ResultScreen", "Result displayed: $result")
             val configuration = LocalConfiguration.current
             val screenWidth = configuration.screenWidthDp.dp
             val skinGradient = Brush.verticalGradient(
@@ -70,8 +77,8 @@ fun ResultScreen(
                 )
             )
             val horizontalPadding = when {
-                screenWidth < 360.dp -> 16.dp
-                screenWidth < 480.dp -> 20.dp
+                screenWidth < 360.dp -> 12.dp
+                screenWidth < 480.dp -> 18.dp
                 else -> 24.dp
             }
             Box(
@@ -82,56 +89,54 @@ fun ResultScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
                         .padding(horizontal = horizontalPadding, vertical = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Image preview at the top
-                    if (selectedBitmap != null) {
-                        Image(
-                            bitmap = selectedBitmap.asImageBitmap(),
-                            contentDescription = "Uploaded skin image",
-                            modifier = Modifier
-                                .size(180.dp)
-                                .clip(RoundedCornerShape(16.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                    } else if (selectedImageUri != null) {
-                        val inputStream: InputStream? = remember(selectedImageUri) {
-                            selectedImageUri.let { uri ->
-                                context.contentResolver.openInputStream(uri!!)
-                            }
-                        }
-                        val bitmap = remember(selectedImageUri) {
-                            inputStream?.use { BitmapFactory.decodeStream(it) }
-                        }
-                        if (bitmap != null) {
+                    // --- Analyzed Image ---
+                    val imageModifier = Modifier
+                        .size(180.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .shadow(10.dp, RoundedCornerShape(20.dp))
+                    when {
+                        selectedBitmap != null -> {
                             Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Uploaded skin image",
-                                modifier = Modifier
-                                    .size(180.dp)
-                                    .clip(RoundedCornerShape(16.dp)),
+                                bitmap = selectedBitmap.asImageBitmap(),
+                                contentDescription = "Analyzed skin image",
+                                modifier = imageModifier,
                                 contentScale = ContentScale.Crop
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(18.dp))
+                        }
+                        selectedImageUri != null -> {
+                            val inputStream: InputStream? = remember(selectedImageUri) {
+                                context.contentResolver.openInputStream(selectedImageUri)
+                            }
+                            val bitmap = remember(selectedImageUri) {
+                                inputStream?.use { BitmapFactory.decodeStream(it) }
+                            }
+                            if (bitmap != null) {
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = "Analyzed skin image",
+                                    modifier = imageModifier,
+                                    contentScale = ContentScale.Crop
+                                )
+                                Spacer(modifier = Modifier.height(18.dp))
+                            }
                         }
                     }
-                    // Prediction (disease name)
+                    // --- Prediction & Severity ---
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .shadow(8.dp, RoundedCornerShape(20.dp)),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White.copy(alpha = 0.9f)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                            .shadow(10.dp, RoundedCornerShape(24.dp)),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.98f)),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
                     ) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(24.dp),
+                            modifier = Modifier.padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
@@ -139,193 +144,180 @@ fun ResultScreen(
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF8B4A2B),
-                                textAlign = TextAlign.Center,
-                                lineHeight = 32.sp
+                                textAlign = TextAlign.Center
                             )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            // Severity chip
-                            Card(
-                                shape = RoundedCornerShape(20.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = when (result.severity) {
-                                        "Mild" -> Color(0xFFB5D6A7)
-                                        "Moderate" -> Color(0xFFFFE082)
-                                        "Severe" -> Color(0xFFE57373)
-                                        else -> Color(0xFFB5D6A7)
-                                    }
-                                ),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                            ) {
-                                Text(
-                                    text = result.severity.uppercase(),
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(20.dp))
-                    // About/Explanation
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(6.dp, RoundedCornerShape(16.dp)),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White.copy(alpha = 0.85f)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp)
-                        ) {
-                            Text(
-                                text = "About This Condition",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF8B4A2B),
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            )
-                            Text(
-                                text = result.about,
-                                fontSize = 16.sp,
-                                color = Color(0xFF6B3E2A),
-                                textAlign = TextAlign.Start,
-                                lineHeight = 22.sp
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(20.dp))
-                    // Symptoms
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(6.dp, RoundedCornerShape(16.dp)),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White.copy(alpha = 0.85f)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp)
-                        ) {
-                            Text(
-                                text = "Common Symptoms",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF8B4A2B),
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            )
-                            FlowRow(
-                                mainAxisSpacing = 8.dp,
-                                crossAxisSpacing = 8.dp,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                result.common_symptoms.forEach { symptom ->
-                                    Card(
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = Color(0xFFF4E4D1)
-                                        ),
-                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                                    ) {
-                                        Text(
-                                            text = symptom,
-                                            color = Color(0xFF6B3E2A),
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                                        )
-                                    }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            if (result.severity.isNotBlank()) {
+                                Card(
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = when (result.severity.lowercase()) {
+                                            "mild" -> Color(0xFFB5D6A7)
+                                            "moderate" -> Color(0xFFFFE082)
+                                            "severe" -> Color(0xFFE57373)
+                                            else -> Color(0xFFB5D6A7)
+                                        }
+                                    ),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Text(
+                                        text = result.severity.uppercase(),
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
                                 }
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
-                    // Recommendations
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(6.dp, RoundedCornerShape(16.dp)),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White.copy(alpha = 0.85f)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp)
+                    Spacer(modifier = Modifier.height(22.dp))
+                    // --- About Section ---
+                    if (result.about.isNotBlank()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(6.dp, RoundedCornerShape(18.dp)),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.93f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                         ) {
-                            Text(
-                                text = "Treatment Recommendations",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF8B4A2B),
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            )
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                result.treatment_recommendations.forEachIndexed { index, rec ->
-                                    Card(
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = Color(0xFFF4E4D1).copy(alpha = 0.6f)
-                                        ),
-                                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(16.dp)
+                            Column(Modifier.padding(20.dp)) {
+                                Text(
+                                    text = "About This Condition",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF8B4A2B)
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    text = result.about,
+                                    fontSize = 16.sp,
+                                    color = Color(0xFF6B3E2A),
+                                    textAlign = TextAlign.Start,
+                                    lineHeight = 22.sp
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(18.dp))
+                    }
+                    // --- Symptoms Section ---
+                    if (result.common_symptoms.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(6.dp, RoundedCornerShape(18.dp)),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.93f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                        ) {
+                            Column(Modifier.padding(20.dp)) {
+                                Text(
+                                    text = "Common Symptoms",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF8B4A2B),
+                                    modifier = Modifier.padding(bottom = 10.dp)
+                                )
+                                FlowRow(
+                                    mainAxisSpacing = 8.dp,
+                                    crossAxisSpacing = 8.dp,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    result.common_symptoms.forEach { symptom ->
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF4E4D1)),
+                                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                         ) {
                                             Text(
-                                                text = "${index + 1}",
-                                                color = Color(0xFF8B4A2B),
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(end = 12.dp)
-                                            )
-                                            Text(
-                                                text = rec,
+                                                text = symptom,
                                                 color = Color(0xFF6B3E2A),
-                                                fontSize = 15.sp,
+                                                fontSize = 14.sp,
                                                 fontWeight = FontWeight.Medium,
-                                                lineHeight = 20.sp,
-                                                modifier = Modifier.weight(1f)
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                                             )
                                         }
                                     }
                                 }
                             }
                         }
+                        Spacer(modifier = Modifier.height(18.dp))
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
-                    // Disclaimer
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(4.dp, RoundedCornerShape(12.dp)),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFFFE082).copy(alpha = 0.3f)
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                    // --- Recommendations Section ---
+                    if (result.treatment_recommendations.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(6.dp, RoundedCornerShape(18.dp)),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.93f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
                         ) {
-                            Text(
-                                text = result.disclaimer,
-                                fontSize = 12.sp,
-                                color = Color(0xFF6B3E2A),
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.weight(1f)
-                            )
+                            Column(Modifier.padding(20.dp)) {
+                                Text(
+                                    text = "Treatment Recommendations",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF8B4A2B),
+                                    modifier = Modifier.padding(bottom = 10.dp)
+                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    result.treatment_recommendations.forEachIndexed { index, rec ->
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF4E4D1)),
+                                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.padding(16.dp)
+                                            ) {
+                                                Text(
+                                                    text = "${index + 1}",
+                                                    color = Color(0xFF8B4A2B),
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(end = 12.dp)
+                                                )
+                                                Text(
+                                                    text = rec,
+                                                    color = Color(0xFF6B3E2A),
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    lineHeight = 20.sp,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(18.dp))
+                    }
+                    // --- Disclaimer Section ---
+                    if (result.disclaimer.isNotBlank()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(4.dp, RoundedCornerShape(12.dp)),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE082).copy(alpha = 0.3f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = result.disclaimer,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF6B3E2A),
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
                     }
                 }
