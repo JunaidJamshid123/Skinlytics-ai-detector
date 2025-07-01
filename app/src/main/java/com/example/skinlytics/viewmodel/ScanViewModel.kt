@@ -6,11 +6,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.skinlytics.model.ScanRepository
 import com.example.skinlytics.model.ScanResult
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 sealed class ScanUiState {
     object Idle : ScanUiState()
@@ -19,8 +17,7 @@ sealed class ScanUiState {
     data class Error(val message: String) : ScanUiState()
 }
 
-@HiltViewModel
-class ScanViewModel @Inject constructor(
+class ScanViewModel(
     private val repository: ScanRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<ScanUiState>(ScanUiState.Idle)
@@ -37,7 +34,8 @@ class ScanViewModel @Inject constructor(
                 val result = repository.uploadImageAndGetResult(context, imageUri)
                 _uiState.value = ScanUiState.Success(result)
             } catch (e: Exception) {
-                _uiState.value = ScanUiState.Error(e.message ?: "Unknown error")
+                _uiState.value = ScanUiState.Error(e.toString())
+                e.printStackTrace()
             }
         }
     }

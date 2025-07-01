@@ -2,8 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("org.jetbrains.kotlin.kapt")
-    id("com.google.dagger.hilt.android") version "2.48" apply true
+    
 }
 
 
@@ -68,17 +67,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("com.google.accompanist:accompanist-flowlayout:0.34.0")
-    implementation("com.google.dagger:hilt-android:2.48")
-    kapt("com.google.dagger:hilt-android-compiler:2.48")
-    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
     implementation("androidx.compose.runtime:runtime:1.6.0")
     implementation("androidx.compose.runtime:runtime-livedata:1.6.0")
-    implementation("com.squareup:javapoet:1.13.0")
-}
-
-// --- Force JavaPoet version to avoid Hilt build failure ---
-configurations.all {
-    resolutionStrategy {
-        force("com.squareup:javapoet:1.13.0")
-    }
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
 }

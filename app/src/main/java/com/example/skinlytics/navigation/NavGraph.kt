@@ -12,6 +12,8 @@ import com.example.skinlytics.ui.screens.profile.ProfileScreen
 import com.example.skinlytics.ui.screens.settings.SettingsScreen
 import com.example.skinlytics.ui.components.BottomNavItem
 import com.example.skinlytics.ui.screens.scan.ResultScreen
+import androidx.lifecycle.ViewModelStoreOwner
+import androidx.compose.runtime.remember
 
 @Composable
 fun NavGraph(navController: NavHostController, startDestination: String = "splash") {
@@ -19,10 +21,15 @@ fun NavGraph(navController: NavHostController, startDestination: String = "splas
         composable("splash") { SplashScreen() }
         composable(BottomNavItem.Home.route) { HomeScreen() }
         composable(BottomNavItem.History.route) { HistoryScreen() }
-        composable(BottomNavItem.Scan.route) {
-            ScanScreen(onViewResult = { navController.navigate("result") })
+        composable(BottomNavItem.Scan.route) { backStackEntry ->
+            ScanScreen(onViewResult = { navController.navigate("result") }, viewModelStoreOwner = backStackEntry)
         }
-        composable("result") { ResultScreen() }
+        composable("result") {
+            val scanBackStackEntry = remember(navController) {
+                navController.getBackStackEntry(BottomNavItem.Scan.route)
+            }
+            ResultScreen(viewModelStoreOwner = scanBackStackEntry)
+        }
         composable(BottomNavItem.Profile.route) { ProfileScreen() }
         composable(BottomNavItem.Settings.route) { SettingsScreen() }
     }

@@ -26,26 +26,39 @@ import androidx.compose.ui.unit.sp
 import com.example.skinlytics.viewmodel.ScanUiState
 import com.example.skinlytics.viewmodel.ScanViewModel
 import com.google.accompanist.flowlayout.FlowRow
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import android.graphics.Bitmap
 import android.net.Uri
 import android.content.Context
 import android.graphics.BitmapFactory
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import com.example.skinlytics.model.ScanRepository
 import java.io.InputStream
+import android.widget.Toast
+import android.util.Log
+import androidx.lifecycle.ViewModelStoreOwner
 
 @Composable
 fun ResultScreen(
-    scanViewModel: ScanViewModel = hiltViewModel(),
+    viewModelStoreOwner: ViewModelStoreOwner,
     selectedImageUri: Uri? = null,
     selectedBitmap: Bitmap? = null,
     context: Context = LocalContext.current
 ) {
+    val scanViewModel: ScanViewModel = viewModel(viewModelStoreOwner = viewModelStoreOwner, factory = object : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return ScanViewModel(ScanRepository()) as T
+        }
+    })
     val uiState = scanViewModel.uiState.collectAsState().value
     when (uiState) {
         is ScanUiState.Success -> {
             val result = (uiState as ScanUiState.Success).result
+            Toast.makeText(context, "Result displayed: ${result.prediction}", Toast.LENGTH_LONG).show()
+            Log.d("ResultScreen", "Result displayed: $result")
             val configuration = LocalConfiguration.current
             val screenWidth = configuration.screenWidthDp.dp
             val skinGradient = Brush.verticalGradient(

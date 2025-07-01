@@ -43,9 +43,15 @@ import java.io.InputStream
 import com.example.skinlytics.ui.components.ChatBotModal
 import com.example.skinlytics.ui.components.ScreenWithChatbot
 import com.example.skinlytics.ui.theme.BrownRich
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.example.skinlytics.model.ScanRepository
 import com.example.skinlytics.viewmodel.ScanViewModel
 import com.example.skinlytics.viewmodel.ScanUiState
+import android.widget.Toast
+import android.util.Log
+import androidx.lifecycle.ViewModelStoreOwner
 
 /**
  * Enhanced ScanScreen with professional medical scanner UI
@@ -54,8 +60,13 @@ import com.example.skinlytics.viewmodel.ScanUiState
 @Composable
 fun ScanScreen(
     onViewResult: () -> Unit = {},
-    scanViewModel: ScanViewModel = hiltViewModel()
+    viewModelStoreOwner: ViewModelStoreOwner
 ) {
+    val scanViewModel: ScanViewModel = viewModel(viewModelStoreOwner = viewModelStoreOwner, factory = object : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return ScanViewModel(ScanRepository()) as T
+        }
+    })
     // Get screen configuration for responsive design
     val configuration = LocalConfiguration.current
     val screenHeight = configuration.screenHeightDp.dp
@@ -194,6 +205,11 @@ fun ScanScreen(
                         Text("Analyzing...", color = buttonColor, fontWeight = FontWeight.Bold)
                     }
                     is ScanUiState.Success -> {
+                        val result = (uiState as ScanUiState.Success).result
+                        Toast.makeText(context, "Result received: ${result.prediction}", Toast.LENGTH_LONG).show()
+                        Log.d("ScanScreen", "Result received: $result")
+                        // Optionally trigger navigation or update UI here
+                        onViewResult()
                         ScanCompleteInterface(
                             selectedImageUri = selectedImageUri,
                             selectedBitmap = selectedBitmap,
